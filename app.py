@@ -95,166 +95,126 @@ def resolve_winner(store_data):
     chosen_id = store_data.get("ganador_id")
     if chosen_id and chosen_id in grupos:
         return grupos[chosen_id]
-    # Si no se eligió uno manualmente, toma el grupo con mayor puntaje
     best_id = max(grupos.keys(), key=lambda k: grupos[k].get("puntos", 0))
     return grupos[best_id]
 
 def render_celebration_overlay():
-    st.markdown("""
-        <style>
-            .celebration-layer {
-                position: fixed;
-                inset: 0;
-                pointer-events: none;
-                overflow: hidden;
-                z-index: 9999;
-            }
-            .balloon {
-                position: absolute;
-                bottom: -140px;
-                width: 54px;
-                height: 68px;
-                border-radius: 50% 50% 45% 45%;
-                opacity: 0.9;
-                animation: floatUp var(--dur, 7s) linear infinite;
-                animation-delay: var(--delay, 0s);
-                left: var(--left, 50%);
-                background: var(--color, #facc15);
-                box-shadow: inset -8px -10px 16px rgba(0,0,0,0.22), 0 8px 18px rgba(0,0,0,0.25);
-            }
-            .balloon::after {
-                content: "";
-                position: absolute;
-                bottom: -26px;
-                left: 50%;
-                width: 2px;
-                height: 28px;
-                background: rgba(255,255,255,0.55);
-                transform: translateX(-50%);
-            }
-            @keyframes floatUp {
-                0% {
-                    transform: translateY(0) translateX(0) rotate(-4deg);
-                    opacity: 0;
-                }
-                10% { opacity: 0.92; }
-                50% {
-                    transform: translateY(-55vh) translateX(18px) rotate(5deg);
-                }
-                90% { opacity: 0.9; }
-                100% {
-                    transform: translateY(-115vh) translateX(-14px) rotate(-3deg);
-                    opacity: 0;
-                }
-            }
-            .rocket {
-                position: absolute;
-                bottom: -90px;
-                left: var(--left, 20%);
-                font-size: 2.3rem;
-                animation: launchRocket var(--dur, 4.5s) ease-out infinite;
-                animation-delay: var(--delay, 0s);
-                filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.8));
-            }
-            @keyframes launchRocket {
-                0% {
-                    transform: translateY(0) scale(0.9);
-                    opacity: 0;
-                }
-                15% { opacity: 1; }
-                70% {
-                    transform: translateY(-68vh) scale(1.1);
-                    opacity: 1;
-                }
-                85% {
-                    transform: translateY(-76vh) scale(1.5);
-                    opacity: 0.8;
-                }
-                100% {
-                    transform: translateY(-82vh) scale(0.2);
-                    opacity: 0;
-                }
-            }
-            .burst {
-                position: absolute;
-                top: var(--top, 28%);
-                left: var(--left, 50%);
-                width: 14px;
-                height: 14px;
-                border-radius: 50%;
-                animation: fireworkBurst var(--dur, 3.2s) ease-out infinite;
-                animation-delay: var(--delay, 0s);
-                box-shadow:
-                    0 -55px 0 var(--c1, #facc15),
-                    39px -39px 0 var(--c2, #38bdf8),
-                    55px 0 0 var(--c3, #f472b6),
-                    39px 39px 0 var(--c4, #4ade80),
-                    0 55px 0 var(--c1, #facc15),
-                    -39px 39px 0 var(--c2, #38bdf8),
-                    -55px 0 0 var(--c3, #f472b6),
-                    -39px -39px 0 var(--c4, #4ade80);
-            }
-            @keyframes fireworkBurst {
-                0% {
-                    transform: scale(0.15);
-                    opacity: 0;
-                }
-                25% {
-                    opacity: 1;
-                }
-                85% {
-                    transform: scale(1.35);
-                    opacity: 0.9;
-                }
-                100% {
-                    transform: scale(1.65);
-                    opacity: 0;
-                }
-            }
-            .confetti {
-                position: absolute;
-                top: -20px;
-                left: var(--left, 50%);
-                width: 10px;
-                height: 18px;
-                background: var(--color, #facc15);
-                animation: confettiFall var(--dur, 4.8s) linear infinite;
-                animation-delay: var(--delay, 0s);
-            }
-            @keyframes confettiFall {
-                0% {
-                    transform: translateY(0) rotate(0deg);
-                    opacity: 1;
-                }
-                100% {
-                    transform: translateY(105vh) rotate(540deg);
-                    opacity: 0.85;
-                }
-            }
-        </style>
-        <div class="celebration-layer">
-            <div class="balloon" style="--left: 6%; --dur: 7.2s; --delay: 0s; --color: #ef4444;"></div>
-            <div class="balloon" style="--left: 14%; --dur: 8.4s; --delay: 1.5s; --color: #3b82f6;"></div>
-            <div class="balloon" style="--left: 23%; --dur: 6.8s; --delay: 0.7s; --color: #facc15;"></div>
-            <div class="balloon" style="--left: 78%; --dur: 7.8s; --delay: 1.1s; --color: #22c55e;"></div>
-            <div class="balloon" style="--left: 86%; --dur: 6.6s; --delay: 2.2s; --color: #ec4899;"></div>
-            <div class="balloon" style="--left: 93%; --dur: 8.1s; --delay: 0.4s; --color: #38bdf8;"></div>
-
-            <div class="rocket" style="--left: 12%; --dur: 4.2s; --delay: 0.2s;">🚀</div>
-            <div class="rocket" style="--left: 88%; --dur: 4.8s; --delay: 1.4s;">🚀</div>
-
-            <div class="burst" style="--top: 22%; --left: 20%; --dur: 3.0s; --delay: 0.4s; --c1: #facc15; --c2: #ef4444; --c3: #38bdf8; --c4: #4ade80;"></div>
-            <div class="burst" style="--top: 26%; --left: 80%; --dur: 3.4s; --delay: 1.2s; --c1: #f472b6; --c2: #facc15; --c3: #a855f7; --c4: #38bdf8;"></div>
-            <div class="burst" style="--top: 18%; --left: 50%; --dur: 3.6s; --delay: 2.0s; --c1: #4ade80; --c2: #facc15; --c3: #fb7185; --c4: #60a5fa;"></div>
-
-            <div class="confetti" style="--left: 18%; --dur: 4.5s; --delay: 0s; --color: #facc15;"></div>
-            <div class="confetti" style="--left: 32%; --dur: 5.2s; --delay: 0.8s; --color: #38bdf8;"></div>
-            <div class="confetti" style="--left: 45%; --dur: 4.1s; --delay: 1.6s; --color: #f472b6;"></div>
-            <div class="confetti" style="--left: 62%; --dur: 5.0s; --delay: 0.4s; --color: #4ade80;"></div>
-            <div class="confetti" style="--left: 75%; --dur: 4.7s; --delay: 1.9s; --color: #fb923c;"></div>
-            <div class="confetti" style="--left: 89%; --dur: 4.3s; --delay: 1.1s; --color: #a855f7;"></div>
-        </div>
-    """, unsafe_allow_html=True)
+    html_code = """
+<style>
+.celebration-layer {
+    position: fixed;
+    inset: 0;
+    pointer-events: none;
+    overflow: hidden;
+    z-index: 9999;
+}
+.balloon {
+    position: absolute;
+    bottom: -140px;
+    width: 54px;
+    height: 68px;
+    border-radius: 50% 50% 45% 45%;
+    opacity: 0.9;
+    animation: floatUp var(--dur, 7s) linear infinite;
+    animation-delay: var(--delay, 0s);
+    left: var(--left, 50%);
+    background: var(--color, #facc15);
+    box-shadow: inset -8px -10px 16px rgba(0,0,0,0.22), 0 8px 18px rgba(0,0,0,0.25);
+}
+.balloon::after {
+    content: "";
+    position: absolute;
+    bottom: -26px;
+    left: 50%;
+    width: 2px;
+    height: 28px;
+    background: rgba(255,255,255,0.55);
+    transform: translateX(-50%);
+}
+@keyframes floatUp {
+    0% { transform: translateY(0) translateX(0) rotate(-4deg); opacity: 0; }
+    10% { opacity: 0.92; }
+    50% { transform: translateY(-55vh) translateX(18px) rotate(5deg); }
+    90% { opacity: 0.9; }
+    100% { transform: translateY(-115vh) translateX(-14px) rotate(-3deg); opacity: 0; }
+}
+.rocket {
+    position: absolute;
+    bottom: -90px;
+    left: var(--left, 20%);
+    font-size: 2.3rem;
+    animation: launchRocket var(--dur, 4.5s) ease-out infinite;
+    animation-delay: var(--delay, 0s);
+    filter: drop-shadow(0 0 12px rgba(251, 191, 36, 0.8));
+}
+@keyframes launchRocket {
+    0% { transform: translateY(0) scale(0.9); opacity: 0; }
+    15% { opacity: 1; }
+    70% { transform: translateY(-68vh) scale(1.1); opacity: 1; }
+    85% { transform: translateY(-76vh) scale(1.5); opacity: 0.8; }
+    100% { transform: translateY(-82vh) scale(0.2); opacity: 0; }
+}
+.burst {
+    position: absolute;
+    top: var(--top, 28%);
+    left: var(--left, 50%);
+    width: 14px;
+    height: 14px;
+    border-radius: 50%;
+    animation: fireworkBurst var(--dur, 3.2s) ease-out infinite;
+    animation-delay: var(--delay, 0s);
+    box-shadow:
+        0 -55px 0 var(--c1, #facc15),
+        39px -39px 0 var(--c2, #38bdf8),
+        55px 0 0 var(--c3, #f472b6),
+        39px 39px 0 var(--c4, #4ade80),
+        0 55px 0 var(--c1, #facc15),
+        -39px 39px 0 var(--c2, #38bdf8),
+        -55px 0 0 var(--c3, #f472b6),
+        -39px -39px 0 var(--c4, #4ade80);
+}
+@keyframes fireworkBurst {
+    0% { transform: scale(0.15); opacity: 0; }
+    25% { opacity: 1; }
+    85% { transform: scale(1.35); opacity: 0.9; }
+    100% { transform: scale(1.65); opacity: 0; }
+}
+.confetti {
+    position: absolute;
+    top: -20px;
+    left: var(--left, 50%);
+    width: 10px;
+    height: 18px;
+    background: var(--color, #facc15);
+    animation: confettiFall var(--dur, 4.8s) linear infinite;
+    animation-delay: var(--delay, 0s);
+}
+@keyframes confettiFall {
+    0% { transform: translateY(0) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(105vh) rotate(540deg); opacity: 0.85; }
+}
+</style>
+<div class="celebration-layer">
+<div class="balloon" style="--left: 6%; --dur: 7.2s; --delay: 0s; --color: #ef4444;"></div>
+<div class="balloon" style="--left: 14%; --dur: 8.4s; --delay: 1.5s; --color: #3b82f6;"></div>
+<div class="balloon" style="--left: 23%; --dur: 6.8s; --delay: 0.7s; --color: #facc15;"></div>
+<div class="balloon" style="--left: 78%; --dur: 7.8s; --delay: 1.1s; --color: #22c55e;"></div>
+<div class="balloon" style="--left: 86%; --dur: 6.6s; --delay: 2.2s; --color: #ec4899;"></div>
+<div class="balloon" style="--left: 93%; --dur: 8.1s; --delay: 0.4s; --color: #38bdf8;"></div>
+<div class="rocket" style="--left: 12%; --dur: 4.2s; --delay: 0.2s;">🚀</div>
+<div class="rocket" style="--left: 88%; --dur: 4.8s; --delay: 1.4s;">🚀</div>
+<div class="burst" style="--top: 22%; --left: 20%; --dur: 3.0s; --delay: 0.4s; --c1: #facc15; --c2: #ef4444; --c3: #38bdf8; --c4: #4ade80;"></div>
+<div class="burst" style="--top: 26%; --left: 80%; --dur: 3.4s; --delay: 1.2s; --c1: #f472b6; --c2: #facc15; --c3: #a855f7; --c4: #38bdf8;"></div>
+<div class="burst" style="--top: 18%; --left: 50%; --dur: 3.6s; --delay: 2.0s; --c1: #4ade80; --c2: #facc15; --c3: #fb7185; --c4: #60a5fa;"></div>
+<div class="confetti" style="--left: 18%; --dur: 4.5s; --delay: 0s; --color: #facc15;"></div>
+<div class="confetti" style="--left: 32%; --dur: 5.2s; --delay: 0.8s; --color: #38bdf8;"></div>
+<div class="confetti" style="--left: 45%; --dur: 4.1s; --delay: 1.6s; --color: #f472b6;"></div>
+<div class="confetti" style="--left: 62%; --dur: 5.0s; --delay: 0.4s; --color: #4ade80;"></div>
+<div class="confetti" style="--left: 75%; --dur: 4.7s; --delay: 1.9s; --color: #fb923c;"></div>
+<div class="confetti" style="--left: 89%; --dur: 4.3s; --delay: 1.1s; --color: #a855f7;"></div>
+</div>
+""".strip()
+    st.markdown(html_code, unsafe_allow_html=True)
 
 query_params = st.query_params
 is_admin = query_params.get("admin", "false").lower() == "true"
