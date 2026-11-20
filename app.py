@@ -71,7 +71,7 @@ is_admin = query_params.get("admin", "false").lower() == "true"
 # ==============================================================================
 if is_admin:
     st.title("🎛️ Panel de Control y Gestión de Grupos")
-    st.info("Abre la URL principal (sin `?admin=true`) en el proyector. Todos los grupos y puntajes se guardan automáticamente en `scoreboard_data.json`.")
+    st.info("Abre la URL principal (sin `?admin=true`) en el proyector. Los datos se guardan en `scoreboard_data.json` mientras el contenedor siga activo.")
 
     nuevo_titulo = st.text_input("Título del Evento / Ronda", value=store["titulo"])
     if nuevo_titulo != store["titulo"]:
@@ -242,6 +242,8 @@ else:
             header {visibility: hidden;}
             footer {visibility: hidden;}
             .stAppDeployButton {display:none;}
+            [data-testid="stToolbar"] {display: none;}
+            [data-testid="stDecoration"] {display: none;}
 
             .stApp {
                 background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
@@ -255,41 +257,46 @@ else:
                 letter-spacing: 3px;
                 text-transform: uppercase;
                 color: #38bdf8;
-                margin-bottom: 1.5rem;
+                margin-bottom: 1.2rem;
                 text-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
             }
 
-            .team-card-1 {
-                background: rgba(30, 58, 138, 0.35);
-                border: 3px solid #3b82f6;
-                border-radius: 24px;
-                padding: 25px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(59, 130, 246, 0.25);
-            }
-            .team-card-2 {
-                background: rgba(153, 27, 27, 0.35);
-                border: 3px solid #ef4444;
-                border-radius: 24px;
-                padding: 25px;
-                text-align: center;
-                box-shadow: 0 10px 30px rgba(239, 68, 68, 0.25);
+            [data-testid="stImage"] img {
+                max-height: 360px;
+                width: 100% !important;
+                object-fit: contain;
+                border-radius: 20px;
+                box-shadow: 0 12px 30px rgba(0, 0, 0, 0.45);
+                background: rgba(15, 23, 42, 0.6);
+                padding: 8px;
             }
 
-            .team-name {
-                font-size: 2.6rem;
+            .team-name-1 {
+                text-align: center;
+                font-size: 2.5rem;
                 font-weight: 800;
-                margin-top: 15px;
-                margin-bottom: 5px;
+                margin-top: 14px;
+                margin-bottom: 4px;
                 text-transform: uppercase;
-                color: #ffffff;
+                color: #60a5fa;
+            }
+
+            .team-name-2 {
+                text-align: center;
+                font-size: 2.5rem;
+                font-weight: 800;
+                margin-top: 14px;
+                margin-bottom: 4px;
+                text-transform: uppercase;
+                color: #f87171;
             }
 
             .score-box {
-                font-size: 8.5rem;
+                text-align: center;
+                font-size: 8rem;
                 font-weight: 900;
-                line-height: 1.05;
-                margin: 10px 0;
+                line-height: 1.0;
+                margin: 6px 0 0 0;
                 font-family: 'Arial Black', sans-serif;
                 color: #facc15;
                 text-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
@@ -300,7 +307,7 @@ else:
                 font-size: 4rem;
                 font-weight: 900;
                 color: #94a3b8;
-                margin-top: 180px;
+                margin-top: 190px;
             }
         </style>
     """, unsafe_allow_html=True)
@@ -310,39 +317,31 @@ else:
     g_izq = store["grupos"].get(store.get("activo_izq"))
     g_der = store["grupos"].get(store.get("activo_der"))
 
-    col1, col_vs, col2 = st.columns([5, 1.2, 5])
+    col1, col_vs, col2 = st.columns([5, 1, 5])
 
     with col1:
-        st.markdown('<div class="team-card-1">', unsafe_allow_html=True)
         if g_izq:
             raw1 = _b64_to_img(g_izq.get("img_b64"))
             if raw1:
-                _, img_col1, _ = st.columns([1, 2, 1])
-                with img_col1:
-                    st.image(Image.open(io.BytesIO(raw1)), use_container_width=True)
+                st.image(Image.open(io.BytesIO(raw1)), use_container_width=True)
             else:
-                st.markdown("<div style='font-size: 6rem; padding: 20px;'>🛡️</div>", unsafe_allow_html=True)
-            st.markdown(f'<div class="team-name">{g_izq["nombre"]}</div>', unsafe_allow_html=True)
+                st.markdown("<div style='font-size: 7rem; text-align: center; padding: 30px;'>🛡️</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="team-name-1">{g_izq["nombre"]}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="score-box">{g_izq["puntos"]}</div>', unsafe_allow_html=True)
         else:
-            st.markdown("<div style='font-size: 2rem; padding: 80px 0; color: #94a3b8;'>Selecciona Grupo Izquierda en ?admin=true</div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 2rem; text-align: center; padding: 80px 0; color: #94a3b8;'>Selecciona Grupo Izquierda en ?admin=true</div>", unsafe_allow_html=True)
 
     with col_vs:
         st.markdown('<div class="vs-text">VS</div>', unsafe_allow_html=True)
 
     with col2:
-        st.markdown('<div class="team-card-2">', unsafe_allow_html=True)
         if g_der:
             raw2 = _b64_to_img(g_der.get("img_b64"))
             if raw2:
-                _, img_col2, _ = st.columns([1, 2, 1])
-                with img_col2:
-                    st.image(Image.open(io.BytesIO(raw2)), use_container_width=True)
+                st.image(Image.open(io.BytesIO(raw2)), use_container_width=True)
             else:
-                st.markdown("<div style='font-size: 6rem; padding: 20px;'>⚔️</div>", unsafe_allow_html=True)
-            st.markdown(f'<div class="team-name">{g_der["nombre"]}</div>', unsafe_allow_html=True)
+                st.markdown("<div style='font-size: 7rem; text-align: center; padding: 30px;'>⚔️</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="team-name-2">{g_der["nombre"]}</div>', unsafe_allow_html=True)
             st.markdown(f'<div class="score-box">{g_der["puntos"]}</div>', unsafe_allow_html=True)
         else:
-            st.markdown("<div style='font-size: 2rem; padding: 80px 0; color: #94a3b8;'>Selecciona Grupo Derecha en ?admin=true</div>", unsafe_allow_html=True)
-        st.markdown('</div>', unsafe_allow_html=True)
+            st.markdown("<div style='font-size: 2rem; text-align: center; padding: 80px 0; color: #94a3b8;'>Selecciona Grupo Derecha en ?admin=true</div>", unsafe_allow_html=True)
