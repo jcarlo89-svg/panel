@@ -73,7 +73,6 @@ if is_admin:
     st.title("🎛️ Panel de Control y Gestión de Grupos")
     st.info("Abre la URL principal (sin `?admin=true`) en el proyector. Todos los grupos y puntajes se guardan automáticamente en `scoreboard_data.json`.")
 
-    # 1. Título del evento
     nuevo_titulo = st.text_input("Título del Evento / Ronda", value=store["titulo"])
     if nuevo_titulo != store["titulo"]:
         store["titulo"] = nuevo_titulo
@@ -81,7 +80,6 @@ if is_admin:
 
     st.divider()
 
-    # 2. Crear nuevo grupo
     st.subheader("➕ Crear nuevo grupo")
     with st.form("form_crear_grupo", clear_on_submit=True):
         c_nom, c_pts, c_img = st.columns([3, 1.5, 3])
@@ -115,7 +113,6 @@ if is_admin:
 
     st.divider()
 
-    # 3. Seleccionar qué 2 grupos se muestran en pantalla
     st.subheader("📺 Seleccionar los 2 grupos en pantalla")
     grupos = store["grupos"]
 
@@ -164,7 +161,6 @@ if is_admin:
 
     st.divider()
 
-    # 4. Gestionar todos los grupos creados (puntajes, nombre, imagen, eliminar)
     st.subheader(f"📋 Todos los grupos guardados ({len(grupos)})")
     if not grupos:
         st.caption("Aún no hay grupos creados.")
@@ -226,4 +222,127 @@ if is_admin:
                         st.write("")
                         if st.button("🗑️ Eliminar", key=f"del_{gid}", use_container_width=True):
                             del store["grupos"][gid]
-                            if store.get("activo_izq") == gid
+                            if store.get("activo_izq") == gid:
+                                store["activo_izq"] = next(iter(store["grupos"]), None)
+                            if store.get("activo_der") == gid:
+                                restantes = [k for k in store["grupos"] if k != store.get("activo_izq")]
+                                store["activo_der"] = restantes[0] if restantes else None
+                            _save_to_disk(store)
+                            st.rerun()
+
+# ==============================================================================
+# MODO 2: VISTA DE PROYECTOR (Pantalla pública limpia)
+# ==============================================================================
+else:
+    st_autorefresh(interval=2000, key="projector_refresh")
+
+    st.markdown("""
+        <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+
+            .stApp {
+                background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+                color: #f8fafc;
+            }
+
+            .event-title {
+                text-align: center;
+                font-size: 2.8rem;
+                font-weight: 800;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                color: #38bdf8;
+                margin-bottom: 1.5rem;
+                text-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
+            }
+
+            .team-card-1 {
+                background: rgba(30, 58, 138, 0.35);
+                border: 3px solid #3b82f6;
+                border-radius: 24px;
+                padding: 25px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(59, 130, 246, 0.25);
+            }
+            .team-card-2 {
+                background: rgba(153, 27, 27, 0.35);
+                border: 3px solid #ef4444;
+                border-radius: 24px;
+                padding: 25px;
+                text-align: center;
+                box-shadow: 0 10px 30px rgba(239, 68, 68, 0.25);
+            }
+
+            .team-name {
+                font-size: 2.6rem;
+                font-weight: 800;
+                margin-top: 15px;
+                margin-bottom: 5px;
+                text-transform: uppercase;
+                color: #ffffff;
+            }
+
+            .score-box {
+                font-size: 8.5rem;
+                font-weight: 900;
+                line-height: 1.05;
+                margin: 10px 0;
+                font-family: 'Arial Black', sans-serif;
+                color: #facc15;
+                text-shadow: 0 6px 20px rgba(250, 204, 21, 0.4);
+            }
+
+            .vs-text {
+                text-align: center;
+                font-size: 4rem;
+                font-weight: 900;
+                color: #94a3b8;
+                margin-top: 180px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f'<div class="event-title">{store["titulo"]}</div>', unsafe_allow_html=True)
+
+    g_izq = store["grupos"].get(store.get("activo_izq"))
+    g_der = store["grupos"].get(store.get("activo_der"))
+
+    col1, col_vs, col2 = st.columns([5, 1.2, 5])
+
+    with col1:
+        st.markdown('<div class="team-card-1">', unsafe_allow_html=True)
+        if g_izq:
+            raw1 = _b64_to_img(g_izq.get("img_b64"))
+            if raw1:
+                _, img_col1, _ = st.columns([1, 2, 1])
+                with img_col1:
+                    st.image(Image.open(io.BytesIO(raw1)), use_container_width=True)
+            else:
+                st.markdown("<div style='font-size: 6rem; padding: 20px;'>🛡️</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="team-name">{g_izq["nombre"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="score-box">{g_izq["puntos"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='font-size: 2rem; padding: 80px 0; color: #94a3b8;'>Selecciona Grupo Izquierda en ?admin=true</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
+
+    with col_vs:
+        st.markdown('<div class="vs-text">VS</div>', unsafe_allow_html=True)
+
+    with col2:
+        st.markdown('<div class="team-card-2">', unsafe_allow_html=True)
+        if g_der:
+            raw2 = _b64_to_img(g_der.get("img_b64"))
+            if raw2:
+                _, img_col2, _ = st.columns([1, 2, 1])
+                with img_col2:
+                    st.image(Image.open(io.BytesIO(raw2)), use_container_width=True)
+            else:
+                st.markdown("<div style='font-size: 6rem; padding: 20px;'>⚔️</div>", unsafe_allow_html=True)
+            st.markdown(f'<div class="team-name">{g_der["nombre"]}</div>', unsafe_allow_html=True)
+            st.markdown(f'<div class="score-box">{g_der["puntos"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown("<div style='font-size: 2rem; padding: 80px 0; color: #94a3b8;'>Selecciona Grupo Derecha en ?admin=true</div>", unsafe_allow_html=True)
+        st.markdown('</div>', unsafe_allow_html=True)
