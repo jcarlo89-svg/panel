@@ -30,6 +30,7 @@ def _b64_to_img(b64_str):
 def _default_state():
     return {
         "titulo": "GRAN FINAL - COMPETENCIA",
+        "evento_img_b64": None,
         "grupos": {},
         "activo_izq": None,
         "activo_der": None,
@@ -43,6 +44,7 @@ def _load_from_disk():
                 data = json.load(f)
             if isinstance(data, dict) and "grupos" in data:
                 data.setdefault("titulo", "GRAN FINAL - COMPETENCIA")
+                data.setdefault("evento_img_b64", None)
                 data.setdefault("activo_izq", None)
                 data.setdefault("activo_der", None)
                 data.setdefault("version", 1)
@@ -64,6 +66,26 @@ def get_store():
 
 store = get_store()
 
+def render_event_header(store_data, is_admin_view=False):
+    raw_logo = _b64_to_img(store_data.get("evento_img_b64"))
+    if is_admin_view:
+        c_logo, c_title = st.columns([1.2, 6.8])
+        with c_logo:
+            if raw_logo:
+                st.image(Image.open(io.BytesIO(raw_logo)), use_container_width=True)
+            else:
+                st.markdown("<div style='font-size: 3rem; text-align: center;'>🏆</div>", unsafe_allow_html=True)
+        with c_title:
+            st.markdown(f"<h2 style='margin: 0; padding-top: 8px;'>{store_data['titulo']}</h2>", unsafe_allow_html=True)
+    else:
+        if raw_logo:
+            _, mid_col, _ = st.columns([4.2, 1.6, 4.2])
+            with mid_col:
+                st.markdown('<div class="event-logo-box">', unsafe_allow_html=True)
+                st.image(Image.open(io.BytesIO(raw_logo)), use_container_width=True)
+                st.markdown('</div>', unsafe_allow_html=True)
+        st.markdown(f'<div class="event-title">{store_data["titulo"]}</div>', unsafe_allow_html=True)
+
 query_params = st.query_params
 is_admin = query_params.get("admin", "false").lower() == "true"
 view_mode = query_params.get("view", "score").lower()
@@ -73,16 +95,35 @@ view_mode = query_params.get("view", "score").lower()
 # ==============================================================================
 if is_admin:
     st.title("🎛️ Panel de Control y Gestión de Grupos")
+    render_event_header(store, is_admin_view=True)
     st.info(
         "Vistas disponibles para el proyector:\n"
         "- **Duelo 1 vs 1:** URL base (sin parámetros)\n"
         "- **Presentación de todos los grupos:** agrega `?view=lineup` al final de la URL"
     )
 
-    nuevo_titulo = st.text_input("Título del Evento / Ronda", value=store["titulo"])
-    if nuevo_titulo != store["titulo"]:
-        store["titulo"] = nuevo_titulo
-        _save_to_disk(store)
+    st.subheader("🏁 Configuración del Evento")
+    c_t, c_l, c_q = st.columns([3.5, 3, 1.5])
+    with c_t:
+        nuevo_titulo = st.text_input("Título del Evento / Ronda", value=store["titulo"])
+        if nuevo_titulo != store["titulo"]:
+            store["titulo"] = nuevo_titulo
+            _save_to_disk(store)
+            st.rerun()
+    with c_l:
+        logo_evento = st.file_uploader("Logo del Evento", type=["png", "jpg", "jpeg", "webp"], key="up_evento_logo")
+        if logo_evento is not None:
+            store["evento_img_b64"] = _img_to_b64(logo_evento.getvalue())
+            _save_to_disk(store)
+            st.rerun()
+    with c_q:
+        st.write("")
+        st.write("")
+        if store.get("evento_img_b64"):
+            if st.button("🗑️ Quitar logo", key="btn_quitar_logo_evento", use_container_width=True):
+                store["evento_img_b64"] = None
+                _save_to_disk(store)
+                st.rerun()
 
     st.divider()
 
@@ -256,9 +297,17 @@ elif view_mode == "lineup":
                 color: #f8fafc;
             }
 
-            .lineup-header {
+            .event-logo-box img {
+                max-height: 95px !important;
+                box-shadow: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 auto 4px auto;
+            }
+
+            .event-title {
                 text-align: center;
-                font-size: 2.5rem;
+                font-size: 2.3rem;
                 font-weight: 800;
                 letter-spacing: 3px;
                 text-transform: uppercase;
@@ -268,16 +317,16 @@ elif view_mode == "lineup":
 
             .lineup-sub {
                 text-align: center;
-                font-size: 1.2rem;
+                font-size: 1.15rem;
                 font-weight: 600;
                 letter-spacing: 2px;
                 text-transform: uppercase;
                 color: #94a3b8;
-                margin-bottom: 1.5rem;
+                margin-bottom: 1.4rem;
             }
 
             [data-testid="stImage"] img {
-                max-height: 230px;
+                max-height: 220px;
                 width: 100% !important;
                 object-fit: contain;
                 border-radius: 18px;
@@ -306,7 +355,7 @@ elif view_mode == "lineup":
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown(f'<div class="lineup-header">{store["titulo"]}</div>', unsafe_allow_html=True)
+    render_event_header(store, is_admin_view=False)
     st.markdown('<div class="lineup-sub">EQUIPOS PARTICIPANTES</div>', unsafe_allow_html=True)
 
     grupos_lista = list(store["grupos"].values())
@@ -320,7 +369,6 @@ elif view_mode == "lineup":
             unsafe_allow_html=True
         )
     else:
-        # Ajusta el número de columnas según cuántos grupos existan para que quepan cómodos en pantalla
         if total <= 2:
             cols_per_row = 2
         elif total <= 4:
@@ -368,19 +416,27 @@ else:
                 color: #f8fafc;
             }
 
+            .event-logo-box img {
+                max-height: 105px !important;
+                box-shadow: none !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 auto 4px auto;
+            }
+
             .event-title {
                 text-align: center;
-                font-size: 2.8rem;
+                font-size: 2.5rem;
                 font-weight: 800;
                 letter-spacing: 3px;
                 text-transform: uppercase;
                 color: #38bdf8;
-                margin-bottom: 1.2rem;
+                margin-bottom: 1.0rem;
                 text-shadow: 0 4px 15px rgba(56, 189, 248, 0.3);
             }
 
             [data-testid="stImage"] img {
-                max-height: 360px;
+                max-height: 340px;
                 width: 100% !important;
                 object-fit: contain;
                 border-radius: 20px;
@@ -425,12 +481,12 @@ else:
                 font-size: 4rem;
                 font-weight: 900;
                 color: #94a3b8;
-                margin-top: 190px;
+                margin-top: 180px;
             }
         </style>
     """, unsafe_allow_html=True)
 
-    st.markdown(f'<div class="event-title">{store["titulo"]}</div>', unsafe_allow_html=True)
+    render_event_header(store, is_admin_view=False)
 
     g_izq = store["grupos"].get(store.get("activo_izq"))
     g_der = store["grupos"].get(store.get("activo_der"))
