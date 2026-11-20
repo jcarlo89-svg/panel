@@ -6,11 +6,12 @@ import json
 import os
 import base64
 import uuid
+import math
 
 DATA_FILE = "scoreboard_data.json"
 
 st.set_page_config(
-    page_title="Marcador de Competencia",
+    page_title="Marcador y Presentación de Grupos",
     page_icon="🏆",
     layout="wide",
     initial_sidebar_state="collapsed"
@@ -65,13 +66,18 @@ store = get_store()
 
 query_params = st.query_params
 is_admin = query_params.get("admin", "false").lower() == "true"
+view_mode = query_params.get("view", "score").lower()
 
 # ==============================================================================
 # MODO 1: PANEL DE ADMINISTRACIÓN (?admin=true)
 # ==============================================================================
 if is_admin:
     st.title("🎛️ Panel de Control y Gestión de Grupos")
-    st.info("Abre la URL principal (sin `?admin=true`) en el proyector. Los datos se guardan en `scoreboard_data.json` mientras el contenedor siga activo.")
+    st.info(
+        "Vistas disponibles para el proyector:\n"
+        "- **Duelo 1 vs 1:** URL base (sin parámetros)\n"
+        "- **Presentación de todos los grupos:** agrega `?view=lineup` al final de la URL"
+    )
 
     nuevo_titulo = st.text_input("Título del Evento / Ronda", value=store["titulo"])
     if nuevo_titulo != store["titulo"]:
@@ -113,7 +119,7 @@ if is_admin:
 
     st.divider()
 
-    st.subheader("📺 Seleccionar los 2 grupos en pantalla")
+    st.subheader("📺 Seleccionar los 2 grupos en pantalla (Modo Duelo)")
     grupos = store["grupos"]
 
     if len(grupos) < 2:
@@ -231,7 +237,119 @@ if is_admin:
                             st.rerun()
 
 # ==============================================================================
-# MODO 2: VISTA DE PROYECTOR (Pantalla pública limpia)
+# MODO 2A: PRESENTACIÓN DE TODOS LOS GRUPOS EN UNA SOLA PANTALLA (?view=lineup)
+# ==============================================================================
+elif view_mode == "lineup":
+    st_autorefresh(interval=2000, key="lineup_refresh")
+
+    st.markdown("""
+        <style>
+            #MainMenu {visibility: hidden;}
+            header {visibility: hidden;}
+            footer {visibility: hidden;}
+            .stAppDeployButton {display:none;}
+            [data-testid="stToolbar"] {display: none;}
+            [data-testid="stDecoration"] {display: none;}
+
+            .stApp {
+                background: radial-gradient(circle at center, #1e293b 0%, #0f172a 100%);
+                color: #f8fafc;
+            }
+
+            .lineup-header {
+                text-align: center;
+                font-size: 2.5rem;
+                font-weight: 800;
+                letter-spacing: 3px;
+                text-transform: uppercase;
+                color: #38bdf8;
+                margin-bottom: 0.2rem;
+            }
+
+            .lineup-sub {
+                text-align: center;
+                font-size: 1.2rem;
+                font-weight: 600;
+                letter-spacing: 2px;
+                text-transform: uppercase;
+                color: #94a3b8;
+                margin-bottom: 1.5rem;
+            }
+
+            [data-testid="stImage"] img {
+                max-height: 230px;
+                width: 100% !important;
+                object-fit: contain;
+                border-radius: 18px;
+                box-shadow: 0 10px 24px rgba(0, 0, 0, 0.45);
+                background: rgba(15, 23, 42, 0.65);
+                padding: 6px;
+            }
+
+            .lineup-name {
+                text-align: center;
+                font-size: 1.65rem;
+                font-weight: 800;
+                margin-top: 10px;
+                margin-bottom: 2px;
+                text-transform: uppercase;
+                color: #ffffff;
+            }
+
+            .lineup-pts {
+                text-align: center;
+                font-size: 1.5rem;
+                font-weight: 800;
+                color: #facc15;
+                margin-bottom: 24px;
+            }
+        </style>
+    """, unsafe_allow_html=True)
+
+    st.markdown(f'<div class="lineup-header">{store["titulo"]}</div>', unsafe_allow_html=True)
+    st.markdown('<div class="lineup-sub">EQUIPOS PARTICIPANTES</div>', unsafe_allow_html=True)
+
+    grupos_lista = list(store["grupos"].values())
+    total = len(grupos_lista)
+
+    if total == 0:
+        st.markdown(
+            "<div style='text-align: center; font-size: 1.8rem; color: #94a3b8; padding: 90px 0;'>"
+            "Aún no hay grupos registrados. Agrega grupos desde ?admin=true"
+            "</div>",
+            unsafe_allow_html=True
+        )
+    else:
+        # Ajusta el número de columnas según cuántos grupos existan para que quepan cómodos en pantalla
+        if total <= 2:
+            cols_per_row = 2
+        elif total <= 4:
+            cols_per_row = total
+        elif total <= 6:
+            cols_per_row = 3
+        else:
+            cols_per_row = 4
+
+        rows = math.ceil(total / cols_per_row)
+        idx = 0
+        for _ in range(rows):
+            cols = st.columns(cols_per_row)
+            for c_idx in range(cols_per_row):
+                if idx >= total:
+                    break
+                g = grupos_lista[idx]
+                with cols[c_idx]:
+                    raw = _b64_to_img(g.get("img_b64"))
+                    if raw:
+                        st.image(Image.open(io.BytesIO(raw)), use_container_width=True)
+                    else:
+                        st.markdown("<div style='font-size: 5rem; text-align: center; padding: 20px;'>🛡️</div>", unsafe_allow_html=True)
+                    st.markdown(f'<div class="lineup-name">{g["nombre"]}</div>', unsafe_allow_html=True)
+                    st.markdown(f'<div class="lineup-pts">{g["puntos"]} PTS</div>', unsafe_allow_html=True)
+                idx += 1
+
+# ==============================================================================
+# MODO 2B: VISTA DE PROYECTOR - DUELO 1 VS 1 (Pantalla pública limpia)
 # ==============================================================================
 else:
     st_autorefresh(interval=2000, key="projector_refresh")
